@@ -1,0 +1,60 @@
+---
+title: "rotation"
+author: "christine :)"
+date: "2025-02-11"
+output: html_document
+---
+
+## read in file
+```{r}
+library(ggplot2)
+
+# Read a text file - track = default ()
+colrect_data1 <- read.table("~/Desktop/pollard_lab/colorect_DEL_cut_edit_scores.txt", header = TRUE)
+head(colrect_data1)
+```
+
+## plot mse vs corr
+```{r}
+# Create scatter plot of mse_0 vs corr_0 for all rows
+ggplot(data, aes(x = mse_0, y = corr_0)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_0 vs Corr_0", x = "MSE_0", y = "Corr_0") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_.500 vs corr_.500 for all rows
+ggplot(data, aes(x = mse_.500, y = corr_.500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_-500 vs Corr_-500", x = "MSE_-500", y = "Corr_-500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_500 vs corr_500 for all rows
+ggplot(data, aes(x = mse_500, y = corr_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_500 vs Corr_500", x = "MSE_500", y = "Corr_500") +
+  theme_minimal()  # Clean theme
+
+```
+
+
+## plot mse vs mse
+```{r}
+# Create scatter plot of mse_0 vs mse_500 for all rows
+ggplot(data, aes(x = mse_0, y = mse_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_0 vs MSE_500", x = "MSE_0", y = "MSE_500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_.500 vs mse_500 for all rows
+ggplot(data, aes(x = mse_.500, y = mse_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_-500 vs MSE_500", x = "MSE_-500", y = "MSE_500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_0 vs mse_.500 for all rows
+ggplot(data, aes(x = mse_0, y = mse_.500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_0 vs MSE_-500", x = "MSE_0", y = "MSE_-500") +
+  theme_minimal()  # Clean theme
+
+```
