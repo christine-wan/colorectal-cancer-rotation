@@ -1,0 +1,364 @@
+---
+title: "rotation"
+author: "christine :)"
+date: "2025-02-11"
+output: html_document
+---
+
+## read in files
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Loop through the file numbers (from 1 to 28)
+for (i in 1:28) {
+  
+  # Construct the file name
+  file_name <- paste0("~/Desktop/pollard_lab/part_", i, ".out_scores")
+  
+  # Read the file into a data frame
+  temp_data <- read.table(file_name, header = TRUE)
+  
+  # Dynamically assign the data frame name using assign()
+  assign(paste0("part_", i, "_df"), temp_data)
+}
+
+```
+
+# read in files - track2
+```{r}
+# Loop through the file numbers (from 1 to 28)
+for (i in 1:28) {
+  
+  # Construct the new file name (assuming the format is "part_4856_<i>.scores")
+  file_name <- paste0("~/Desktop/pollard_lab/part_4856_", i, ".out_scores")
+  
+  # Read the file into a data frame
+  temp_data <- read.table(file_name, header = TRUE)
+  
+  # Dynamically assign the data frame name using assign()
+  assign(paste0("part_4856_", i, "_df"), temp_data)
+}
+
+```
+
+## plot mse vs corr - track 2
+```{r}
+# Create scatter plot of mse_0 vs corr_0 for all rows
+# Start the plot with a clean theme
+plot <- ggplot() + 
+  labs(title = "MSE_0 vs Corr_0", x = "MSE_0", y = "Corr_0") + 
+  theme_minimal() # Clean theme
+
+# Loop through the file numbers (from 1 to 28, skipping 8)
+for (i in 1:28) {
+  
+  # Dynamically create the data frame name
+  df_name <- paste0("part_", i, "_df")
+  
+  # Add the data points to the plot
+  plot <- plot + 
+    geom_point(data = get(df_name), aes(x = mse_0, y = corr_0), color = "blue", size = 3)
+}
+
+# Print the plot
+print(plot)
+
+```
+
+## filtering
+```{r}
+# Create a list of all the dataframes (assuming they are named part_1_df to part_28_df)
+dfs <- list(part_1_df, part_2_df, part_3_df, part_4_df, part_5_df, part_6_df, part_7_df, 
+            part_8_df, part_9_df, part_10_df, part_11_df, part_12_df, part_13_df, 
+            part_14_df, part_15_df, part_16_df, part_17_df, part_18_df, part_19_df, 
+            part_20_df, part_21_df, part_22_df, part_23_df, part_24_df, part_25_df, 
+            part_26_df, part_27_df, part_28_df)
+
+# Filter each dataframe
+filtered_dfs <- lapply(dfs, function(df) {
+  df[df$mse_0 > 0.1 & df$corr_0 < 0.98, ]
+})
+
+# Assign the filtered dataframes to new names (new_part_1_df, new_part_2_df, etc.)
+for (i in 1:28) {
+  assign(paste0("new_part_", i, "_df"), filtered_dfs[[i]])
+}
+
+```
+
+```{r}
+# Create a list of all dataframes dynamically
+dfs <- mget(paste0("part_4856_", 1:28, "_df"))
+
+# Filter each dataframe
+filtered_dfs <- lapply(dfs, function(df) {
+  df[df$mse_0 > 50 & df$corr_0 < 0.95, ]
+})
+
+# Assign the filtered dataframes to new names (new_part_4856_1_df, new_part_4856_2_df, etc.)
+for (i in 1:28) {
+  assign(paste0("new_part_4856_", i, "_df"), filtered_dfs[[i]])
+}
+```
+
+## plotting corr v. corr
+```{r}
+# Assuming 'dfs' and 'part_4856_dfs' are already defined
+# Extract the 'corr_0' column from each dataframe in both lists
+
+corr_data <- data.frame(
+  part_4856_corr_0 = numeric(0),  # Placeholder for part_4856_i_df corr_0 values
+  part_corr_0 = numeric(0)        # Placeholder for part_i_df corr_0 values
+)
+
+# Loop through each pair of dataframes (one from each list)
+for (i in 1:28) {
+  
+  part_df <- dfs[[i]]  # part_i_df
+  part_4856_df <- mget(paste0("part_4856_", i, "_df"))[[1]]  # part_4856_i_df
+  
+  # Assuming the column of interest is 'corr_0' in both dataframes
+  corr_data <- rbind(corr_data, data.frame(
+    part_4856_corr_0 = part_4856_df$corr_0,
+    part_corr_0 = part_df$corr_0
+  ))
+}
+
+ggplot(corr_data, aes(x = combined_part_4856_df$corr_0, y = combined_part_df$corr_0)) +
+  geom_point(color = "blue") +
+  labs(
+    title = "Corr vs. Corr",
+    x = "CAGE: Corr",
+    y = "DNase: Corr"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+# Calculate correlation
+correlation <- cor(corr_data$part_4856_corr_0, corr_data$part_corr_0, use = "complete.obs")
+
+# Print correlation
+print(correlation)
+```
+
+
+## read in multitrack file for all outliers
+```{r}
+outliers <- read.csv("~/Desktop/pollard_lab/outliers_scores.csv", header=TRUE)
+```
+
+
+```{r}
+outliers_avg_mse <- outliers %>%
+  rowwise() %>%
+  mutate(
+    avg_mse = mean(c_across(10:ncol(outliers))[grep("mse", names(outliers)[10:ncol(outliers)])], na.rm = TRUE)) 
+
+outliers_avg_mse <- outliers_avg_mse[, c(1, 2, 3, which(names(outliers_avg_mse) == "avg_mse"), setdiff(4:ncol(outliers_avg_mse), which(names(outliers_avg_mse) == "avg_mse")))]
+
+
+outliers_avg_corr <- outliers %>%
+  rowwise() %>%
+  mutate(
+    avg_corr = mean(c_across(10:ncol(outliers))[grep("corr", names(outliers)[10:ncol(outliers)])], na.rm = TRUE)) 
+
+
+outliers_avg_corr <- outliers_avg_corr[, c(1, 2, 3, which(names(outliers_avg_corr) == "avg_corr"), setdiff(4:ncol(outliers_avg_corr), which(names(outliers_avg_corr) == "avg_corr")))]
+
+# Subset the first 10 columns from both tables
+outliers_avg_corr_sub <- outliers_avg_corr[, 1:10]
+outliers_avg_mse_sub <- outliers_avg_mse[, 1:10]
+
+# Bind the two data frames column-wise
+merged_df <- cbind(outliers_avg_corr_sub, avg_corr = outliers_avg_corr_sub$avg_corr, 
+                   outliers_avg_mse_sub$avg_mse)
+
+# Remove the duplicate avg_corr.1 column (if it exists)
+merged_df <- merged_df[, !grepl("avg_corr.1", names(merged_df))]
+
+# Rename avg_mse column
+colnames(merged_df)[which(names(merged_df) == "outliers_avg_mse_sub$avg_mse")] <- "avg_mse"
+
+# Move 'avg_mse' to column 5
+merged_df <- merged_df[, c(1:4, which(names(merged_df) == "avg_mse"), 5:ncol(merged_df))]
+```
+
+
+```{r}
+library(dplyr)
+
+# Compute avg_mse for columns that contain "CTCF" and "mse", grouped by CHROM
+outliers_avg_mse <- outliers %>%
+  select(CHROM, contains("CTCF")) %>%  # Keep CHROM and columns containing "CTCF"
+  rowwise() %>%
+  mutate(avg_mse = mean(c_across(contains("mse")), na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(CHROM) %>%
+  summarise(avg_mse = mean(avg_mse, na.rm = TRUE))
+
+# Compute avg_corr for columns that contain "CTCF" and "corr", grouped by CHROM
+outliers_avg_corr <- outliers %>%
+  select(CHROM, contains("CTCF")) %>%  # Keep CHROM and columns containing "CTCF"
+  rowwise() %>%
+  mutate(avg_corr = mean(c_across(contains("corr")), na.rm = TRUE)) %>%
+  ungroup() %>%
+  group_by(CHROM) %>%
+  summarise(avg_corr = mean(avg_corr, na.rm = TRUE))
+
+# Merge the two data frames by CHROM
+merged_df <- left_join(outliers_avg_corr, outliers_avg_mse, by = "CHROM")
+
+# View the result
+print(merged_df)
+
+
+```
+
+## plot mse vs corr 1
+```{r}
+# Create scatter plot of mse_0 vs corr_0 for all rows
+ggplot() +
+  geom_point(data = colorect1, aes(x = mse_0, y = corr_0), color = "blue", size = 3) +  # Blue points for colorect1
+  geom_point(data = colorect2, aes(x = mse_0, y = corr_0), color = "blue", size = 3) +  # Blue points for colorect2
+  labs(title = "MSE_0 vs Corr_0", x = "MSE_0", y = "Corr_0") +
+  theme_minimal() # Clean theme
+
+# Create scatter plot of mse_.500 vs corr_.500 for all rows
+ggplot(colorect1, aes(x = mse_.500, y = corr_.500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_-500 vs Corr_-500", x = "MSE_-500", y = "Corr_-500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_500 vs corr_500 for all rows
+ggplot(colorect1, aes(x = mse_500, y = corr_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_500 vs Corr_500", x = "MSE_500", y = "Corr_500") +
+  theme_minimal()  # Clean theme
+
+```
+
+## plot mse vs mse 1
+```{r}
+# Create scatter plot of mse_0 vs mse_500 for all rows
+ggplot(colorect1, aes(x = mse_0, y = mse_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_0 vs MSE_500", x = "MSE_0", y = "MSE_500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_.500 vs mse_500 for all rows
+ggplot(colorect1, aes(x = mse_.500, y = mse_500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_-500 vs MSE_500", x = "MSE_-500", y = "MSE_500") +
+  theme_minimal()  # Clean theme
+
+# Create scatter plot of mse_0 vs mse_.500 for all rows
+ggplot(colorect1, aes(x = mse_0, y = mse_.500)) +
+  geom_point(color = "blue", size = 3) +  # Blue points
+  labs(title = "MSE_0 vs MSE_-500", x = "MSE_0", y = "MSE_-500") +
+  theme_minimal()  # Clean theme
+
+```
+
+## lengths
+```{r}
+#colrect_total <- read.table("~/Desktop/pollard_lab/colorect_DEL_hg38_name.txt", header = TRUE)
+
+colorect_total <- colrect_total %>% mutate(observation = 1:n()) %>% select(observation, everything())
+
+#ggplot(colorect_total, aes(x = observation, y = SVLEN)) +
+#  geom_point(color = "blue", size = 3) +  # Blue points
+#  theme_minimal()  # Clean theme
+
+#histogram
+hist(colorect_total$SVLEN, 
+     main="Histogram of SVLEN",    # Title of the plot
+     xlab="SVLEN",                 # Label for the x-axis
+     ylab="Frequency",             # Label for the y-axis
+     col="lightblue",              # Color of the bars
+     border="black",               # Color of the border around the bars
+     breaks=200,
+     ylim = c(0, 580000))                    # Number of bins (you can adjust this)
+
+
+# Filter data where SVLEN > 1
+filtered_data <- colorect_total %>% filter(SVLEN > 1)
+
+hist(filtered_data$SVLEN, 
+     breaks = 100, 
+     col = "lightblue", 
+     border = "black", 
+     main = "Histogram of SVLEN (SVLEN > 1)", 
+     xlab = "SVLEN", 
+     ylab = "Frequency", 
+     ylim = c(0, 35000)) 
+
+```
+
+```{r}
+# Create the histogram data without plotting it
+hist_data <- hist(colorect_total$SVLEN, 
+                  breaks=200, 
+                  plot=FALSE)
+
+# Log-transform the frequencies (add 1 to avoid log(0) for bins with zero counts)
+log_freq <- log(hist_data$counts + 1)
+
+# Set up the plot
+plot(hist_data$mids, 
+     log_freq, 
+     type="n",                    # Don't plot anything yet (we'll manually draw the bars)
+     main="Histogram of SVLEN",    # Title of the plot
+     xlab="SVLEN",                 # Label for the x-axis
+     ylab="Log(Frequency)",        # Label for the y-axis
+     ylim=c(0, max(log_freq)),     # Set the y-axis limit based on the log-transformed frequencies
+     col="lightblue",              # Color of the bars
+     border="black")               # Color of the borders
+
+# Manually add the bars with the correct width and no overlap
+bar_width <- diff(hist_data$breaks)[1]  # Calculate the width of each bar
+
+# Use rect() to manually draw the bars
+for (i in 1:length(log_freq)) {
+  rect(hist_data$breaks[i], 0, hist_data$breaks[i+1], log_freq[i], 
+       col="lightblue", 
+       border="black")
+}
+
+
+# Filter the data for SVLEN > 1
+filtered_data <- colorect_total$SVLEN[colorect_total$SVLEN > 1]
+
+# Create the histogram data without plotting it
+hist_data <- hist(filtered_data, 
+                  breaks=200, 
+                  plot=FALSE)
+
+# Log-transform the frequencies (add 1 to avoid log(0) for bins with zero counts)
+log_freq <- log(hist_data$counts + 1)
+
+# Set up the plot
+plot(hist_data$mids, 
+     log_freq, 
+     type="n",                    # Don't plot anything yet (we'll manually draw the bars)
+     main="Histogram of SVLEN (SVLEN > 1)",    # Title of the plot
+     xlab="SVLEN",                 # Label for the x-axis
+     ylab="Log(Frequency)",        # Label for the y-axis
+     ylim=c(0, max(log_freq)),     # Set the y-axis limit based on the log-transformed frequencies
+     col="lightblue",              # Color of the bars
+     border="black")               # Color of the borders
+
+# Manually add the bars with the correct width and no overlap
+bar_width <- diff(hist_data$breaks)[1]  # Calculate the width of each bar
+
+# Use rect() to manually draw the bars
+for (i in 1:length(log_freq)) {
+  rect(hist_data$breaks[i], 0, hist_data$breaks[i+1], log_freq[i], 
+       col="lightblue", 
+       border="black")
+}
+
+
+```
